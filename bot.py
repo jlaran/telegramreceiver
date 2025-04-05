@@ -1,17 +1,19 @@
 from telethon import TelegramClient, events
 from telegram import Bot
 import re
+import os
 import asyncio
+from datetime import datetime, time, timedelta
 
 # CONFIGURACIÓN
 api_id = os.getenv("TELEGRAM_API") # Reemplaza con tu API ID
 api_hash = os.getenv("TELEGRAM_API_HASH") # Reemplaza con tu API Hash
 bot_token = os.getenv("TELEGRAM_BOT_TOKEN") # Token del bot
-user_id = 1343297649  # Tu ID de Telegram
+user_id = os.getenv("TELEGRAM_USER_ID")  # Tu ID de Telegram
 
 # IDS de canales
 WATCHED_CHANNELS = {
-    os.getenv("TELEGRAM_CHANNEL_LOGAN"),  # Logan
+    os.getenv("TELEGRAM_CHANNEL_LOGAN"), # Logan
     os.getenv("TELEGRAM_CHANNEL_PIT") # Trading Pit
 }
 
@@ -71,9 +73,29 @@ async def handler(event):
     if parsed:
         await telegram_bot.send_message(chat_id=user_id, text=parsed)
 
+# === MENSAJE DIARIO DE ESTADO ===
+async def send_daily_status():
+    while True:
+        now = datetime.now()
+        target = datetime.combine(now.date(), time(hour=8, minute=0))
+        if now > target:
+            target += timedelta(days=1)
+        wait_time = (target - now).total_seconds()
+        await asyncio.sleep(wait_time)
+
+        await telegram_bot.send_message(chat_id=user_id, text="📢 El bot sigue activo ✅")
+
+# === MENSAJE DE INICIO ===
+async def send_startup_message():
+    await telegram_bot.send_message(chat_id=user_id, text="✅ Bot iniciado y escuchando señales...")
+
 # Ejecutar cliente
 def main():
+    loop = asyncio.get_event_loop()
+    loop.create_task(send_startup_message())
+    loop.create_task(send_daily_status())
     print("📡 Bot escuchando señales...")
+
     with telethon_client:
         telethon_client.run_until_disconnected()
 
